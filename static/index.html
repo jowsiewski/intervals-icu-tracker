@@ -346,9 +346,6 @@
                 <label>Typ:</label>
                 <select id="typeFilter" onchange="loadActivities()">
                     <option value="">Wszystkie</option>
-                    <option value="Ride">Jazda</option>
-                    <option value="VirtualRide">Jazda wirtualna</option>
-                    <option value="Run">Bieganie</option>
                 </select>
             </div>
 
@@ -476,8 +473,17 @@
         function getTypeBadge(type) {
             const typeMap = {
                 'Ride': 'type-ride',
+                'GravelRide': 'type-ride',
                 'VirtualRide': 'type-virtualride',
-                'Run': 'type-run'
+                'Run': 'type-run',
+                'VirtualRun': 'type-run',
+                'Walk': 'type-run',
+                'Hike': 'type-run',
+                'Swim': 'type-virtualride',
+                'OpenWaterSwim': 'type-virtualride',
+                'Kayaking': 'type-virtualride',
+                'Rowing': 'type-virtualride',
+                'StandUpPaddling': 'type-virtualride'
             };
             return typeMap[type] || 'type-ride';
         }
@@ -487,7 +493,25 @@
             const typeNames = {
                 'Ride': 'Jazda',
                 'VirtualRide': 'Wirtualna jazda',
-                'Run': 'Bieganie'
+                'GravelRide': 'Jazda szutrowa',
+                'Run': 'Bieganie',
+                'VirtualRun': 'Wirtualne bieganie',
+                'Walk': 'Chodzenie',
+                'Hike': 'Wędrówka',
+                'Swim': 'Pływanie',
+                'OpenWaterSwim': 'Pływanie open water',
+                'AlpineSki': 'Narciarstwo alpejskie',
+                'BackcountrySki': 'Narciarstwo backcountry',
+                'NordicSki': 'Narciarstwo biegowe',
+                'IceSkate': 'Łyżwiarstwo',
+                'InlineSkate': 'Rolki',
+                'Kayaking': 'Kajakarstwo',
+                'Rowing': 'Wioślarstwo',
+                'StandUpPaddling': 'SUP',
+                'Workout': 'Trening',
+                'WeightTraining': 'Trening siłowy',
+                'Yoga': 'Yoga',
+                'Other': 'Inne'
             };
             return typeNames[type] || type;
         }
@@ -712,8 +736,40 @@
             }
         }
 
+        // Populate activity type filter dynamically
+        async function populateActivityTypes() {
+            try {
+                const response = await fetch(`${API_BASE}/activities?limit=1000`);
+                if (!response.ok) return;
+                
+                const activities = await response.json();
+                const types = [...new Set(activities.map(a => a.type).filter(t => t))].sort();
+                
+                const typeFilter = document.getElementById('typeFilter');
+                const currentValue = typeFilter.value;
+                
+                // Keep "Wszystkie" option and add unique types
+                types.forEach(type => {
+                    const option = document.createElement('option');
+                    option.value = type;
+                    option.textContent = getTypeName(type);
+                    typeFilter.appendChild(option);
+                });
+                
+                // Restore previous selection
+                if (currentValue) {
+                    typeFilter.value = currentValue;
+                }
+            } catch (error) {
+                console.error('Error loading activity types:', error);
+            }
+        }
+
         // Load activities on page load
-        document.addEventListener('DOMContentLoaded', loadActivities);
+        document.addEventListener('DOMContentLoaded', async () => {
+            await populateActivityTypes();
+            await loadActivities();
+        });
     </script>
 </body>
 </html>
