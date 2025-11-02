@@ -588,7 +588,7 @@
         }
 
         // Load activities
-        async function loadActivities() {
+        async function loadActivities(keepSort = false) {
             const loading = document.getElementById('loading');
             const table = document.getElementById('activitiesTable');
             
@@ -608,6 +608,19 @@
                 if (!response.ok) throw new Error('Failed to load activities');
                 
                 currentActivities = await response.json();
+                
+                // Reset sort to default if not keeping current sort
+                if (!keepSort) {
+                    currentSort = { field: 'date', order: 'desc' };
+                    // Reset header styling
+                    document.querySelectorAll('th.sortable').forEach(th => {
+                        th.classList.remove('asc', 'desc');
+                    });
+                    const dateHeader = document.querySelector('th[data-sort="date"]');
+                    if (dateHeader) {
+                        dateHeader.classList.add('desc');
+                    }
+                }
                 
                 // Apply current sort
                 sortTable(currentSort.field);
