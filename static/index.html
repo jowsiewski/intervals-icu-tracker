@@ -1,0 +1,706 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Intervals.icu - Moje Aktywności</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .header {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            margin-bottom: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+
+        .header h1 {
+            color: #667eea;
+            margin-bottom: 10px;
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .stat-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+        }
+
+        .stat-card h3 {
+            font-size: 14px;
+            opacity: 0.9;
+            margin-bottom: 10px;
+        }
+
+        .stat-card .value {
+            font-size: 28px;
+            font-weight: bold;
+        }
+
+        .controls {
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 500;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .filter-group {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .filter-group input,
+        .filter-group select {
+            padding: 10px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+        }
+
+        .table-container {
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px;
+            text-align: left;
+            font-weight: 600;
+            position: sticky;
+            top: 0;
+        }
+
+        th.sortable {
+            cursor: pointer;
+            user-select: none;
+            position: relative;
+            padding-right: 30px;
+        }
+
+        th.sortable:hover {
+            background: linear-gradient(135deg, #7688f0 0%, #8659b2 100%);
+        }
+
+        th.sortable::after {
+            content: '⇅';
+            position: absolute;
+            right: 10px;
+            opacity: 0.5;
+        }
+
+        th.sortable.asc::after {
+            content: '↑';
+            opacity: 1;
+        }
+
+        th.sortable.desc::after {
+            content: '↓';
+            opacity: 1;
+        }
+
+        th:first-child {
+            border-top-left-radius: 10px;
+        }
+
+        th:last-child {
+            border-top-right-radius: 10px;
+        }
+
+        td {
+            padding: 15px;
+            border-bottom: 1px solid #f0f0f0;
+        }
+
+        tr:hover {
+            background: #f8f9ff;
+        }
+
+        .type-badge {
+            display: inline-block;
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .type-ride {
+            background: #e3f2fd;
+            color: #1976d2;
+        }
+
+        .type-virtualride {
+            background: #f3e5f5;
+            color: #7b1fa2;
+        }
+
+        .type-run {
+            background: #fff3e0;
+            color: #f57c00;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #667eea;
+            font-size: 18px;
+        }
+
+        .error {
+            background: #ffebee;
+            color: #c62828;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            max-width: 500px;
+            width: 90%;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+
+        .modal-content h2 {
+            color: #667eea;
+            margin-bottom: 15px;
+        }
+
+        .modal-content p {
+            color: #666;
+            margin-bottom: 20px;
+        }
+
+        .sync-options {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            margin-bottom: 25px;
+        }
+
+        .modal-buttons {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+        }
+
+        .btn-secondary {
+            background: #e0e0e0;
+            color: #333;
+        }
+
+        .btn-secondary:hover {
+            background: #d0d0d0;
+        }
+
+        #customDates {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            padding: 15px;
+            background: #f8f9ff;
+            border-radius: 8px;
+        }
+
+        @media (max-width: 768px) {
+            .stats {
+                grid-template-columns: 1fr;
+            }
+
+            .controls {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            table {
+                font-size: 14px;
+            }
+
+            th, td {
+                padding: 10px 8px;
+            }
+
+            .modal-content {
+                width: 95%;
+                padding: 20px;
+            }
+
+            .modal-buttons {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🚴 Moje Aktywności</h1>
+            <p>Dane z Intervals.icu</p>
+            
+            <div class="stats" id="stats">
+                <div class="stat-card">
+                    <h3>Wszystkie aktywności</h3>
+                    <div class="value" id="totalActivities">-</div>
+                </div>
+                <div class="stat-card">
+                    <h3>Całkowity dystans</h3>
+                    <div class="value" id="totalDistance">-</div>
+                </div>
+                <div class="stat-card">
+                    <h3>Czas w ruchu</h3>
+                    <div class="value" id="totalTime">-</div>
+                </div>
+                <div class="stat-card">
+                    <h3>Średni dystans</h3>
+                    <div class="value" id="avgDistance">-</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="controls">
+            <button class="btn" onclick="showSyncDialog()">🔄 Synchronizuj</button>
+            <button class="btn" onclick="loadActivities()">🔃 Odśwież</button>
+            
+            <div class="filter-group">
+                <label>Typ:</label>
+                <select id="typeFilter" onchange="loadActivities()">
+                    <option value="">Wszystkie</option>
+                    <option value="Ride">Jazda</option>
+                    <option value="VirtualRide">Jazda wirtualna</option>
+                    <option value="Run">Bieganie</option>
+                </select>
+            </div>
+
+            <div class="filter-group">
+                <label>Limit:</label>
+                <select id="limitSelect" onchange="loadActivities()">
+                    <option value="10">10</option>
+                    <option value="25" selected>25</option>
+                    <option value="50">50</option>
+                    <option value="100">100</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- Sync Dialog Modal -->
+        <div id="syncDialog" class="modal" style="display: none;">
+            <div class="modal-content">
+                <h2>🔄 Synchronizacja Aktywności</h2>
+                <p>Wybierz zakres czasu, z którego chcesz zsynchronizować aktywności:</p>
+                
+                <div class="sync-options">
+                    <div class="filter-group">
+                        <label>Zakres czasu:</label>
+                        <select id="syncPeriod" onchange="toggleCustomDates()">
+                            <option value="7">Ostatnie 7 dni</option>
+                            <option value="30" selected>Ostatnie 30 dni</option>
+                            <option value="90">Ostatnie 3 miesiące</option>
+                            <option value="180">Ostatnie 6 miesięcy</option>
+                            <option value="365">Ostatni rok</option>
+                            <option value="custom">Niestandardowy zakres</option>
+                        </select>
+                    </div>
+
+                    <div id="customDates" style="display: none;">
+                        <div class="filter-group">
+                            <label>Data początkowa:</label>
+                            <input type="date" id="startDate">
+                        </div>
+                        <div class="filter-group">
+                            <label>Data końcowa:</label>
+                            <input type="date" id="endDate">
+                        </div>
+                    </div>
+
+                    <div class="filter-group">
+                        <label>Maksymalna liczba:</label>
+                        <select id="syncLimit">
+                            <option value="50">50</option>
+                            <option value="100" selected>100</option>
+                            <option value="200">200</option>
+                            <option value="500">500</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="modal-buttons">
+                    <button class="btn btn-secondary" onclick="closeSyncDialog()">Anuluj</button>
+                    <button class="btn" onclick="syncActivities()">Synchronizuj</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="error" style="display: none;" class="error"></div>
+
+        <div class="table-container">
+            <div id="loading" class="loading">Ładowanie danych...</div>
+            <table id="activitiesTable" style="display: none;">
+                <thead>
+                    <tr>
+                        <th class="sortable" data-sort="date" onclick="sortTable('date')">Data</th>
+                        <th>Nazwa</th>
+                        <th class="sortable" data-sort="type" onclick="sortTable('type')">Typ</th>
+                        <th class="sortable" data-sort="distance" onclick="sortTable('distance')">Dystans</th>
+                        <th>Czas</th>
+                        <th>Średnia prędkość</th>
+                        <th>Średnie tętno</th>
+                    </tr>
+                </thead>
+                <tbody id="activitiesBody"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        // Use relative URL for API - works both locally and in production
+        const API_BASE = `${window.location.origin}/api/v1`;
+        
+        // Global variables for sorting
+        let currentActivities = [];
+        let currentSort = { field: 'date', order: 'desc' };
+
+        // Format distance in kilometers
+        function formatDistance(meters) {
+            if (!meters) return '-';
+            return (meters / 1000).toFixed(2) + ' km';
+        }
+
+        // Format time in hours and minutes
+        function formatTime(seconds) {
+            if (!seconds) return '-';
+            const hours = Math.floor(seconds / 3600);
+            const minutes = Math.floor((seconds % 3600) / 60);
+            return hours > 0 ? `${hours}h ${minutes}m` : `${minutes}m`;
+        }
+
+        // Format speed in km/h
+        function formatSpeed(mps) {
+            if (!mps) return '-';
+            return (mps * 3.6).toFixed(1) + ' km/h';
+        }
+
+        // Format date
+        function formatDate(dateString) {
+            const date = new Date(dateString);
+            return date.toLocaleDateString('pl-PL', { 
+                day: '2-digit', 
+                month: '2-digit', 
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+        }
+
+        // Get type badge class
+        function getTypeBadge(type) {
+            const typeMap = {
+                'Ride': 'type-ride',
+                'VirtualRide': 'type-virtualride',
+                'Run': 'type-run'
+            };
+            return typeMap[type] || 'type-ride';
+        }
+
+        // Get type name in Polish
+        function getTypeName(type) {
+            const typeNames = {
+                'Ride': 'Jazda',
+                'VirtualRide': 'Wirtualna jazda',
+                'Run': 'Bieganie'
+            };
+            return typeNames[type] || type;
+        }
+
+        // Show error message
+        function showError(message) {
+            const errorDiv = document.getElementById('error');
+            errorDiv.textContent = message;
+            errorDiv.style.display = 'block';
+            setTimeout(() => {
+                errorDiv.style.display = 'none';
+            }, 5000);
+        }
+
+        // Load summary statistics
+        async function loadSummary() {
+            try {
+                const response = await fetch(`${API_BASE}/activities/summary`);
+                if (!response.ok) throw new Error('Failed to load summary');
+                
+                const data = await response.json();
+                
+                document.getElementById('totalActivities').textContent = data.total_activities;
+                document.getElementById('totalDistance').textContent = formatDistance(data.total_distance);
+                document.getElementById('totalTime').textContent = formatTime(data.total_moving_time);
+                document.getElementById('avgDistance').textContent = formatDistance(data.avg_distance);
+            } catch (error) {
+                console.error('Error loading summary:', error);
+            }
+        }
+
+        // Sort table by field
+        function sortTable(field) {
+            // Toggle sort order if clicking the same field
+            if (currentSort.field === field) {
+                currentSort.order = currentSort.order === 'asc' ? 'desc' : 'asc';
+            } else {
+                currentSort.field = field;
+                currentSort.order = 'desc'; // Default to descending for new field
+            }
+
+            // Update header styling
+            document.querySelectorAll('th.sortable').forEach(th => {
+                th.classList.remove('asc', 'desc');
+            });
+            const currentHeader = document.querySelector(`th[data-sort="${field}"]`);
+            if (currentHeader) {
+                currentHeader.classList.add(currentSort.order);
+            }
+
+            // Sort the activities
+            currentActivities.sort((a, b) => {
+                let aVal, bVal;
+
+                switch(field) {
+                    case 'date':
+                        aVal = new Date(a.start_date).getTime();
+                        bVal = new Date(b.start_date).getTime();
+                        break;
+                    case 'type':
+                        aVal = a.type || '';
+                        bVal = b.type || '';
+                        break;
+                    case 'distance':
+                        aVal = a.distance || 0;
+                        bVal = b.distance || 0;
+                        break;
+                    default:
+                        return 0;
+                }
+
+                if (aVal < bVal) return currentSort.order === 'asc' ? -1 : 1;
+                if (aVal > bVal) return currentSort.order === 'asc' ? 1 : -1;
+                return 0;
+            });
+
+            // Re-render the table
+            renderActivities();
+        }
+
+        // Render activities in the table
+        function renderActivities() {
+            const tbody = document.getElementById('activitiesBody');
+            tbody.innerHTML = '';
+            
+            currentActivities.forEach(activity => {
+                const row = tbody.insertRow();
+                row.innerHTML = `
+                    <td>${formatDate(activity.start_date)}</td>
+                    <td><strong>${activity.name}</strong></td>
+                    <td><span class="type-badge ${getTypeBadge(activity.type)}">${getTypeName(activity.type)}</span></td>
+                    <td>${formatDistance(activity.distance)}</td>
+                    <td>${formatTime(activity.moving_time)}</td>
+                    <td>${formatSpeed(activity.average_speed)}</td>
+                    <td>${activity.average_heartrate ? Math.round(activity.average_heartrate) + ' bpm' : '-'}</td>
+                `;
+            });
+        }
+
+        // Load activities
+        async function loadActivities() {
+            const loading = document.getElementById('loading');
+            const table = document.getElementById('activitiesTable');
+            
+            loading.style.display = 'block';
+            table.style.display = 'none';
+
+            try {
+                const typeFilter = document.getElementById('typeFilter').value;
+                const limit = document.getElementById('limitSelect').value;
+                
+                let url = `${API_BASE}/activities?limit=${limit}`;
+                if (typeFilter) {
+                    url += `&activity_type=${typeFilter}`;
+                }
+
+                const response = await fetch(url);
+                if (!response.ok) throw new Error('Failed to load activities');
+                
+                currentActivities = await response.json();
+                
+                // Apply current sort
+                sortTable(currentSort.field);
+
+                loading.style.display = 'none';
+                table.style.display = 'table';
+                
+                await loadSummary();
+            } catch (error) {
+                console.error('Error loading activities:', error);
+                showError('Błąd podczas ładowania aktywności');
+                loading.style.display = 'none';
+            }
+        }
+
+        // Show sync dialog
+        function showSyncDialog() {
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('endDate').value = today;
+            
+            const thirtyDaysAgo = new Date();
+            thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+            document.getElementById('startDate').value = thirtyDaysAgo.toISOString().split('T')[0];
+            
+            document.getElementById('syncDialog').style.display = 'flex';
+        }
+
+        // Close sync dialog
+        function closeSyncDialog() {
+            document.getElementById('syncDialog').style.display = 'none';
+        }
+
+        // Toggle custom date inputs
+        function toggleCustomDates() {
+            const period = document.getElementById('syncPeriod').value;
+            const customDates = document.getElementById('customDates');
+            customDates.style.display = period === 'custom' ? 'flex' : 'none';
+        }
+
+        // Sync activities from Intervals.icu
+        async function syncActivities() {
+            const btn = event.target;
+            btn.disabled = true;
+            btn.textContent = '⏳ Synchronizacja...';
+
+            try {
+                const syncLimit = document.getElementById('syncLimit').value;
+                const syncPeriod = document.getElementById('syncPeriod').value;
+                
+                let url = `${API_BASE}/activities/sync?limit=${syncLimit}`;
+                
+                if (syncPeriod === 'custom') {
+                    const startDate = document.getElementById('startDate').value;
+                    const endDate = document.getElementById('endDate').value;
+                    
+                    if (!startDate || !endDate) {
+                        throw new Error('Proszę wybrać datę początkową i końcową');
+                    }
+                    
+                    url += `&oldest=${startDate}&newest=${endDate}`;
+                } else {
+                    const daysAgo = parseInt(syncPeriod);
+                    const oldestDate = new Date();
+                    oldestDate.setDate(oldestDate.getDate() - daysAgo);
+                    url += `&oldest=${oldestDate.toISOString().split('T')[0]}`;
+                }
+
+                const response = await fetch(url, {
+                    method: 'POST'
+                });
+                
+                if (!response.ok) throw new Error('Sync failed');
+                
+                const result = await response.json();
+                
+                if (result.status === 'success') {
+                    closeSyncDialog();
+                    alert(`✅ Zsynchronizowano ${result.activities_synced} aktywności!`);
+                    await loadActivities();
+                } else {
+                    throw new Error(result.message || 'Unknown error');
+                }
+            } catch (error) {
+                console.error('Error syncing activities:', error);
+                showError(error.message || 'Błąd podczas synchronizacji');
+            } finally {
+                btn.disabled = false;
+                btn.textContent = 'Synchronizuj';
+            }
+        }
+
+        // Load activities on page load
+        document.addEventListener('DOMContentLoaded', loadActivities);
+    </script>
+</body>
+</html>
