@@ -652,6 +652,9 @@
                 loading.style.display = 'none';
                 table.style.display = 'table';
                 
+                // Populate activity type filter with loaded data
+                populateActivityTypes();
+                
                 await loadSummary();
             } catch (error) {
                 console.error('Error loading activities:', error);
@@ -736,19 +739,23 @@
             }
         }
 
-        // Populate activity type filter dynamically
-        async function populateActivityTypes() {
+        // Populate activity type filter from loaded activities
+        function populateActivityTypes() {
             try {
-                const response = await fetch(`${API_BASE}/activities?limit=1000`);
-                if (!response.ok) return;
+                // Get unique types from current activities
+                if (!currentActivities || currentActivities.length === 0) return;
                 
-                const activities = await response.json();
-                const types = [...new Set(activities.map(a => a.type).filter(t => t))].sort();
+                const types = [...new Set(currentActivities.map(a => a.type).filter(t => t))].sort();
                 
                 const typeFilter = document.getElementById('typeFilter');
                 const currentValue = typeFilter.value;
                 
-                // Keep "Wszystkie" option and add unique types
+                // Remove all options except "Wszystkie"
+                while (typeFilter.options.length > 1) {
+                    typeFilter.remove(1);
+                }
+                
+                // Add unique types
                 types.forEach(type => {
                     const option = document.createElement('option');
                     option.value = type;
@@ -756,18 +763,20 @@
                     typeFilter.appendChild(option);
                 });
                 
-                // Restore previous selection
-                if (currentValue) {
+                // Restore previous selection if it still exists
+                if (currentValue && types.includes(currentValue)) {
                     typeFilter.value = currentValue;
+                } else if (currentValue && currentValue !== '') {
+                    // If previous selection no longer exists, reset to "Wszystkie"
+                    typeFilter.value = '';
                 }
             } catch (error) {
-                console.error('Error loading activity types:', error);
+                console.error('Error populating activity types:', error);
             }
         }
 
         // Load activities on page load
         document.addEventListener('DOMContentLoaded', async () => {
-            await populateActivityTypes();
             await loadActivities();
         });
     </script>
