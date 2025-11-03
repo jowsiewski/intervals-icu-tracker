@@ -341,6 +341,7 @@
         <div class="controls">
             <button class="btn" onclick="showSyncDialog()">🔄 Synchronizuj</button>
             <button class="btn" onclick="loadActivities()">🔃 Odśwież</button>
+            <button class="btn" onclick="shareView()">📤 Udostępnij</button>
             
             <div class="filter-group">
                 <label>Typ:</label>
@@ -775,9 +776,56 @@
             }
         }
 
+        // Share current view with filters
+        function shareView() {
+            const typeFilter = document.getElementById('typeFilter').value;
+            const limit = document.getElementById('limitSelect').value;
+            
+            const params = new URLSearchParams();
+            if (typeFilter) params.set('type', typeFilter);
+            params.set('limit', limit);
+            params.set('sort', currentSort.field);
+            params.set('order', currentSort.order);
+            
+            const shareUrl = `${window.location.origin}${window.location.pathname}?${params.toString()}`;
+            
+            // Copy to clipboard
+            navigator.clipboard.writeText(shareUrl).then(() => {
+                alert('✅ Link skopiowany do schowka!\n\nMożesz go teraz wkleić i udostępnić.');
+            }).catch(() => {
+                // Fallback - show URL in prompt
+                prompt('Skopiuj ten link:', shareUrl);
+            });
+        }
+
+        // Load filters from URL parameters
+        function loadFiltersFromURL() {
+            const params = new URLSearchParams(window.location.search);
+            
+            const type = params.get('type');
+            const limit = params.get('limit');
+            const sort = params.get('sort');
+            const order = params.get('order');
+            
+            if (type) {
+                const typeFilter = document.getElementById('typeFilter');
+                typeFilter.value = type;
+            }
+            
+            if (limit) {
+                const limitSelect = document.getElementById('limitSelect');
+                limitSelect.value = limit;
+            }
+            
+            if (sort && order) {
+                currentSort = { field: sort, order: order };
+            }
+        }
+
         // Load activities on page load
         document.addEventListener('DOMContentLoaded', async () => {
-            await loadActivities();
+            loadFiltersFromURL();
+            await loadActivities(true); // Keep sort from URL
         });
     </script>
 </body>
