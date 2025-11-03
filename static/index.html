@@ -283,6 +283,65 @@
             border-radius: 8px;
         }
 
+        .pagination {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 2px solid #f0f0f0;
+        }
+
+        .pagination-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            color: #666;
+            font-size: 14px;
+        }
+
+        .pagination-controls {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .page-numbers {
+            display: flex;
+            gap: 5px;
+            align-items: center;
+        }
+
+        .page-btn {
+            background: white;
+            color: #667eea;
+            border: 2px solid #667eea;
+            padding: 8px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.2s;
+            min-width: 40px;
+        }
+
+        .page-btn:hover {
+            background: #667eea;
+            color: white;
+        }
+
+        .page-btn.active {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-color: transparent;
+        }
+
+        .page-numbers span {
+            color: #999;
+            padding: 0 5px;
+        }
+
         @media (max-width: 768px) {
             .stats {
                 grid-template-columns: 1fr;
@@ -308,6 +367,21 @@
 
             .modal-buttons {
                 flex-direction: column;
+            }
+
+            .pagination-info {
+                flex-direction: column;
+                gap: 10px;
+            }
+
+            .pagination-controls {
+                flex-wrap: wrap;
+            }
+
+            .page-btn {
+                padding: 6px 10px;
+                font-size: 12px;
+                min-width: 35px;
             }
         }
     </style>
@@ -427,6 +501,26 @@
                 </thead>
                 <tbody id="activitiesBody"></tbody>
             </table>
+            
+            <div id="pagination" class="pagination" style="display: none;">
+                <div class="pagination-info">
+                    <span id="paginationInfo">Wyświetlanie 0-0 z 0</span>
+                    <div class="filter-group">
+                        <label>Na stronę:</label>
+                        <select id="itemsPerPage" onchange="changeItemsPerPage()">
+                            <option value="10">10</option>
+                            <option value="25" selected>25</option>
+                            <option value="50">50</option>
+                            <option value="100">100</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="pagination-controls">
+                    <button class="btn" id="prevPage" onclick="prevPage()">← Poprzednia</button>
+                    <div id="pageNumbers" class="page-numbers"></div>
+                    <button class="btn" id="nextPage" onclick="nextPage()">Następna →</button>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -434,9 +528,11 @@
         // Use relative URL for API - works both locally and in production
         const API_BASE = `${window.location.origin}/api/v1`;
         
-        // Global variables for sorting
+        // Global variables for sorting and paging
         let currentActivities = [];
         let currentSort = { field: 'date', order: 'desc' };
+        let currentPage = 1;
+        let itemsPerPage = 25;
 
         // Format distance in kilometers
         function formatDistance(meters) {
@@ -598,7 +694,13 @@
             const tbody = document.getElementById('activitiesBody');
             tbody.innerHTML = '';
             
-            currentActivities.forEach(activity => {
+            // Calculate pagination
+            const totalPages = Math.ceil(currentActivities.length / itemsPerPage);
+            const startIndex = (currentPage - 1) * itemsPerPage;
+            const endIndex = startIndex + itemsPerPage;
+            const paginatedActivities = currentActivities.slice(startIndex, endIndex);
+            
+            paginatedActivities.forEach(activity => {
                 const row = tbody.insertRow();
                 row.innerHTML = `
                     <td>${formatDate(activity.start_date)}</td>
@@ -610,6 +712,82 @@
                     <td>${activity.average_heartrate ? Math.round(activity.average_heartrate) + ' bpm' : '-'}</td>
                 `;
             });
+            
+            // Update pagination info
+            updatePaginationInfo(startIndex, endIndex, totalPages);
+        }
+        
+        // Update pagination information
+        function updatePaginationInfo(startIndex, endIndex, totalPages) {
+            const paginationInfo = document.getElementById('paginationInfo');
+            const showing = Math.min(endIndex, currentActivities.length);
+            paginationInfo.textContent = `Wyświetlanie ${startIndex + 1}-${showing} z ${currentActivities.length}`;
+            
+            // Update pagination buttons
+            document.getElementById('prevPage').disabled = currentPage === 1;
+            document.getElementById('nextPage').disabled = currentPage >= totalPages;
+            document.getElementById('pageNumbers').innerHTML = renderPageNumbers(totalPages);
+        }
+        
+        // Render page numbers
+        function renderPageNumbers(totalPages) {
+            let html = '';
+            const maxVisible = 5;
+            let startPage = Math.max(1, currentPage - Math.floor(maxVisible / 2));
+            let endPage = Math.min(totalPages, startPage + maxVisible - 1);
+            
+            if (endPage - startPage < maxVisible - 1) {
+                startPage = Math.max(1, endPage - maxVisible + 1);
+            }
+            
+            if (startPage > 1) {
+                html += `<button class="page-btn" onclick="goToPage(1)">1</button>`;
+                if (startPage > 2) html += '<span>...</span>';
+            }
+            
+            for (let i = startPage; i <= endPage; i++) {
+                html += `<button class="page-btn ${i === currentPage ? 'active' : ''}" onclick="goToPage(${i})">${i}</button>`;
+            }
+            
+            if (endPage < totalPages) {
+                if (endPage < totalPages - 1) html += '<span>...</span>';
+                html += `<button class="page-btn" onclick="goToPage(${totalPages})">${totalPages}</button>`;
+            }
+            
+            return html;
+        }
+        
+        // Change page
+        function goToPage(page) {
+            currentPage = page;
+            renderActivities();
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+        
+        // Previous page
+        function prevPage() {
+            if (currentPage > 1) {
+                currentPage--;
+                renderActivities();
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            }
+        }
+        
+        // Next page
+        function nextPage() {
+            const totalPages = Math.ceil(currentActivities.length / itemsPerPage);
+            if (currentPage < totalPages) {
+                currentPage++;
+                renderActivities();
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            }
+        }
+        
+        // Change items per page
+        function changeItemsPerPage() {
+            itemsPerPage = parseInt(document.getElementById('itemsPerPage').value);
+            currentPage = 1; // Reset to first page
+            renderActivities();
         }
 
         // Load activities
@@ -642,6 +820,9 @@
                 
                 currentActivities = await response.json();
                 
+                // Reset to first page when loading new data
+                currentPage = 1;
+                
                 // Reset sort to default if not keeping current sort
                 if (!keepSort) {
                     currentSort = { field: 'date', order: 'desc' };
@@ -660,6 +841,10 @@
 
                 loading.style.display = 'none';
                 table.style.display = 'table';
+                
+                // Show pagination if we have activities
+                const pagination = document.getElementById('pagination');
+                pagination.style.display = currentActivities.length > 0 ? 'flex' : 'none';
                 
                 // Populate activity type filter with loaded data
                 populateActivityTypes();
@@ -778,6 +963,8 @@
             params.set('limit', limit);
             params.set('sort', currentSort.field);
             params.set('order', currentSort.order);
+            params.set('perPage', itemsPerPage);
+            params.set('page', currentPage);
             
             const shareUrl = `${window.location.origin}${window.location.pathname}?${params.toString()}`;
             
@@ -800,6 +987,8 @@
             const limit = params.get('limit');
             const sort = params.get('sort');
             const order = params.get('order');
+            const perPage = params.get('perPage');
+            const page = params.get('page');
             
             if (type) {
                 const typeFilter = document.getElementById('typeFilter');
@@ -824,11 +1013,24 @@
             if (sort && order) {
                 currentSort = { field: sort, order: order };
             }
+            
+            if (perPage) {
+                itemsPerPage = parseInt(perPage);
+            }
+            
+            if (page) {
+                currentPage = parseInt(page);
+            }
         }
 
         // Load activities on page load
         document.addEventListener('DOMContentLoaded', async () => {
             loadFiltersFromURL();
+            // Set itemsPerPage select value after loading from URL
+            const itemsPerPageSelect = document.getElementById('itemsPerPage');
+            if (itemsPerPageSelect) {
+                itemsPerPageSelect.value = itemsPerPage;
+            }
             await loadActivities(true); // Keep sort from URL
         });
     </script>
