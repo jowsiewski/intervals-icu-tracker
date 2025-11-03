@@ -712,8 +712,9 @@
                 } else {
                     const daysAgo = parseInt(syncPeriod);
                     const oldestDate = new Date();
+                    const newestDate = new Date();
                     oldestDate.setDate(oldestDate.getDate() - daysAgo);
-                    url += `&oldest=${oldestDate.toISOString().split('T')[0]}`;
+                    url += `&oldest=${oldestDate.toISOString().split('T')[0]}&newest=${newestDate.toISOString().split('T')[0]}`;
                 }
 
                 const response = await fetch(url, {
