@@ -351,12 +351,23 @@
             </div>
 
             <div class="filter-group">
+                <label>Od:</label>
+                <input type="date" id="dateFrom" onchange="loadActivities()">
+            </div>
+
+            <div class="filter-group">
+                <label>Do:</label>
+                <input type="date" id="dateTo" onchange="loadActivities()">
+            </div>
+
+            <div class="filter-group">
                 <label>Limit:</label>
                 <select id="limitSelect" onchange="loadActivities()">
                     <option value="10">10</option>
                     <option value="25" selected>25</option>
                     <option value="50">50</option>
                     <option value="100">100</option>
+                    <option value="500">500</option>
                 </select>
             </div>
         </div>
@@ -370,25 +381,14 @@
                 <div class="sync-options">
                     <div class="filter-group">
                         <label>Zakres czasu:</label>
-                        <select id="syncPeriod" onchange="toggleCustomDates()">
+                        <select id="syncPeriod">
                             <option value="7">Ostatnie 7 dni</option>
                             <option value="30" selected>Ostatnie 30 dni</option>
                             <option value="90">Ostatnie 3 miesiące</option>
                             <option value="180">Ostatnie 6 miesięcy</option>
                             <option value="365">Ostatni rok</option>
-                            <option value="custom">Niestandardowy zakres</option>
+                            <option value="all">Wszystkie (całość)</option>
                         </select>
-                    </div>
-
-                    <div id="customDates" style="display: none;">
-                        <div class="filter-group">
-                            <label>Data początkowa:</label>
-                            <input type="date" id="startDate">
-                        </div>
-                        <div class="filter-group">
-                            <label>Data końcowa:</label>
-                            <input type="date" id="endDate">
-                        </div>
                     </div>
 
                     <div class="filter-group">
@@ -622,11 +622,19 @@
 
             try {
                 const typeFilter = document.getElementById('typeFilter').value;
+                const dateFrom = document.getElementById('dateFrom').value;
+                const dateTo = document.getElementById('dateTo').value;
                 const limit = document.getElementById('limitSelect').value;
                 
                 let url = `${API_BASE}/activities?limit=${limit}`;
                 if (typeFilter) {
                     url += `&activity_type=${typeFilter}`;
+                }
+                if (dateFrom) {
+                    url += `&start_date=${dateFrom}`;
+                }
+                if (dateTo) {
+                    url += `&end_date=${dateTo}`;
                 }
 
                 const response = await fetch(url);
@@ -666,26 +674,12 @@
 
         // Show sync dialog
         function showSyncDialog() {
-            const today = new Date().toISOString().split('T')[0];
-            document.getElementById('endDate').value = today;
-            
-            const thirtyDaysAgo = new Date();
-            thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-            document.getElementById('startDate').value = thirtyDaysAgo.toISOString().split('T')[0];
-            
             document.getElementById('syncDialog').style.display = 'flex';
         }
 
         // Close sync dialog
         function closeSyncDialog() {
             document.getElementById('syncDialog').style.display = 'none';
-        }
-
-        // Toggle custom date inputs
-        function toggleCustomDates() {
-            const period = document.getElementById('syncPeriod').value;
-            const customDates = document.getElementById('customDates');
-            customDates.style.display = period === 'custom' ? 'flex' : 'none';
         }
 
         // Sync activities from Intervals.icu
@@ -700,15 +694,8 @@
                 
                 let url = `${API_BASE}/activities/sync?limit=${syncLimit}`;
                 
-                if (syncPeriod === 'custom') {
-                    const startDate = document.getElementById('startDate').value;
-                    const endDate = document.getElementById('endDate').value;
-                    
-                    if (!startDate || !endDate) {
-                        throw new Error('Proszę wybrać datę początkową i końcową');
-                    }
-                    
-                    url += `&oldest=${startDate}&newest=${endDate}`;
+                if (syncPeriod === 'all') {
+                    // Sync all - no date filters, just use limit
                 } else {
                     const daysAgo = parseInt(syncPeriod);
                     const oldestDate = new Date();
@@ -780,10 +767,14 @@
         // Share current view with filters
         function shareView() {
             const typeFilter = document.getElementById('typeFilter').value;
+            const dateFrom = document.getElementById('dateFrom').value;
+            const dateTo = document.getElementById('dateTo').value;
             const limit = document.getElementById('limitSelect').value;
             
             const params = new URLSearchParams();
             if (typeFilter) params.set('type', typeFilter);
+            if (dateFrom) params.set('from', dateFrom);
+            if (dateTo) params.set('to', dateTo);
             params.set('limit', limit);
             params.set('sort', currentSort.field);
             params.set('order', currentSort.order);
@@ -804,6 +795,8 @@
             const params = new URLSearchParams(window.location.search);
             
             const type = params.get('type');
+            const dateFrom = params.get('from');
+            const dateTo = params.get('to');
             const limit = params.get('limit');
             const sort = params.get('sort');
             const order = params.get('order');
@@ -811,6 +804,16 @@
             if (type) {
                 const typeFilter = document.getElementById('typeFilter');
                 typeFilter.value = type;
+            }
+            
+            if (dateFrom) {
+                const dateFromInput = document.getElementById('dateFrom');
+                dateFromInput.value = dateFrom;
+            }
+            
+            if (dateTo) {
+                const dateToInput = document.getElementById('dateTo');
+                dateToInput.value = dateTo;
             }
             
             if (limit) {
